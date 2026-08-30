@@ -52,23 +52,35 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // --- Config PeerJS ---------------------------------------------------------
-// Le STUN seul suffit quand les deux téléphones sont sur le même réseau Wi-Fi.
-// Dès qu'ils sont sur des réseaux différents (l'un en 4G, ou NAT symétrique),
-// l'échange ICE échoue silencieusement sans TURN : la connexion reste bloquée
-// sur "Connexion…" sans erreur JS visible. Le TURN public ci-dessous (Open
-// Relay Project, gratuit, partagé) sert de secours pour les tests ; pour un
-// usage fiable au quotidien, remplacer par un TURN dédié (ex. coturn).
-const PEER_CONFIG = {
-  config: {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:global.stun.twilio.com:3478" },
-      { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
-      { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
-      { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
-    ],
-  },
-};
+// Le STUN seul suffit quand les deux téléphones sont sur le même réseau Wi-Fi
+// sans isolation. Dès qu'ils sont sur des réseaux différents (l'un en 4G, ou
+// NAT symétrique), l'échange ICE échoue silencieusement sans TURN. Les
+// identifiants TURN ci-dessous sont récupérés dynamiquement (compte gratuit
+// Metered.ca, 20 Go/mois) : ils peuvent tourner/changer de région côté
+// Metered, d'où la récupération via leur API plutôt qu'en dur.
+const TURN_CREDENTIALS_URL = "https://bbfone.metered.live/api/v1/turn/credentials?apiKey=3dbf27d3321ef1e1721f91baa25c7877830a";
+const STUN_FALLBACK = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:global.stun.twilio.com:3478" },
+];
+
+let iceServersPromise = null;
+
+async function getIceServers() {
+  if (!iceServersPromise) {
+    iceServersPromise = fetch(TURN_CREDENTIALS_URL)
+      .then((res) => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then((turnServers) => [...STUN_FALLBACK, ...turnServers])
+      .catch((err) => {
+        console.warn("Identifiants TURN indisponibles, repli sur STUN seul :", err);
+        return STUN_FALLBACK;
+      });
+  }
+  return iceServersPromise;
+}
 
 function watchIceState(peerConnection, onFailed, onRecovered) {
   if (!peerConnection) return;
@@ -206,9 +218,10 @@ async function startMicRole() {
   connectMicPeer();
 }
 
-function connectMicPeer(attempt = 0) {
+async function connectMicPeer(attempt = 0) {
+  const iceServers = await getIceServers();
   const code = randomCode();
-  const peer = new Peer(PEER_ID_PREFIX + code, PEER_CONFIG);
+  const peer = new Peer(PEER_ID_PREFIX + code, { config: { iceServers } });
   micState.peer = peer;
 
   peer.on("open", () => {
@@ -242,9 +255,18 @@ function connectMicPeer(attempt = 0) {
     micPairingEl.hidden = true;
     micLiveEl.hidden = false;
     micStopBtn.hidden = false;
-    setMicStatus("Connecté", "connected");
+    // "Connecté" n'est confirmé que par watchIceState ci-dessus : recevoir
+    // l'appel ne veut pas dire que l'audio circule déjà (ICE peut échouer).
+    setMicStatus("Connexion en cours…", "pending");
     if (micState.stopMeter) micState.stopMeter();
     micState.stopMeter = attachLevelMeter(micState.stream, micLevelEl);
+
+    setTimeout(() => {
+      const state = call.peerConnection && call.peerConnection.iceConnectionState;
+      if (state !== "connected" && state !== "completed") {
+        setMicStatus("Ça prend du temps… vérifiez le réseau des deux téléphones", "pending");
+      }
+    }, 12000);
   });
 
   peer.on("error", (err) => {
@@ -326,10 +348,11 @@ parentConnectBtn.addEventListener("click", () => {
   connectToMic(code);
 });
 
-function connectToMic(code) {
+async function connectToMic(code) {
   parentState.lastCode = code;
   setParentStatus("Connexion…", "pending");
-  const peer = new Peer(PEER_CONFIG);
+  const iceServers = await getIceServers();
+  const peer = new Peer({ config: { iceServers } });
   parentState.peer = peer;
 
   peer.on("open", () => {

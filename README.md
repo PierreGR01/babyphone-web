@@ -79,12 +79,22 @@ de confiance locale, puis n'importe quel serveur statique (`npx serve -S`).
   - Vérifier aussi qu'aucune autre appli n'utilise déjà le micro en tâche de
     fond (coupe les appels/enregistreurs vocaux en cours).
 
-## Limites connues
+## Serveur TURN
 
-- **Fiabilité réseau** : la configuration utilise uniquement des serveurs
-  STUN publics. Sur un Wi-Fi classique ça fonctionne bien ; sur des réseaux
-  mobiles/4G très restrictifs, un serveur **TURN** peut être nécessaire
-  (voir `PEER_CONFIG` dans `app.js`).
+La connexion audio direct (STUN) échoue silencieusement dès que les deux
+téléphones ne peuvent pas se joindre en pair-à-pair (réseaux différents,
+NAT restrictif, isolation Wi-Fi). L'app récupère donc des identifiants TURN
+dynamiquement via un compte gratuit [Metered.ca](https://www.metered.ca/)
+(20 Go/mois, voir `TURN_CREDENTIALS_URL` dans `app.js`), avec repli sur STUN
+seul si le service est indisponible. La clé API qui apparaît dans le code
+source est normale pour ce type de service côté client : elle n'autorise
+que l'usage du quota TURN, pas d'accès au compte.
+
+Si le quota gratuit est dépassé un mois, le TURN cesse de fonctionner et
+seules les connexions sur un même réseau sans isolation continueront de
+marcher — surveiller l'usage sur le tableau de bord Metered.ca.
+
+## Limites connues
 - **Arrière-plan** : si le navigateur passe en arrière-plan ou l'écran se
   verrouille malgré le Wake Lock (selon l'OS), la capture micro ou la
   lecture audio peuvent être interrompues. Gardez l'onglet au premier plan.
