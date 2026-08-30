@@ -82,8 +82,15 @@ function watchIceState(peerConnection, onFailed, onRecovered) {
 
 function describeMediaError(err) {
   const name = err && err.name;
+  const message = (err && err.message) || "";
   if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-    return "Micro refusé — vérifiez l'autorisation dans les réglages du navigateur";
+    if (/dismiss/i.test(message)) {
+      // Aucune popup n'a pu s'afficher : le blocage est au niveau de l'appli
+      // (permission micro coupée pour le navigateur dans les réglages du
+      // téléphone), pas un simple refus dans la page.
+      return "Micro bloqué par le téléphone — vérifiez le réglage Microphone du navigateur dans les réglages du téléphone";
+    }
+    return "Micro refusé — rechargez la page pour réautoriser, ou vérifiez les réglages du site";
   }
   if (name === "NotFoundError" || name === "DevicesNotFoundError") {
     return "Aucun micro détecté sur cet appareil";
@@ -112,6 +119,9 @@ async function getMicStream() {
     } catch (err) {
       console.error("getUserMedia a échoué avec", constraints, err);
       lastErr = err;
+      // Un refus/dismiss de permission ne se résoudra pas en réessayant avec
+      // d'autres contraintes : ça ne ferait qu'enchaîner les popups.
+      if (err && err.name === "NotAllowedError") break;
     }
   }
   throw lastErr;

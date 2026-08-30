@@ -65,12 +65,19 @@ de confiance locale, puis n'importe quel serveur statique (`npx serve -S`).
   L'app inclut un TURN public gratuit de secours, mais pour un usage fiable
   au quotidien il vaut mieux mettre les deux téléphones sur le même Wi-Fi ou
   déployer son propre TURN.
-- **Le micro échoue sur iPhone mais pas sur Android** : le message affiché
-  précise maintenant la cause exacte (refus de permission, micro déjà utilisé,
-  etc.). Sur iOS, si l'autorisation a été refusée une première fois, Safari ne
-  redemande plus automatiquement : il faut l'autoriser manuellement via
-  Réglages → Safari → [nom du site] → Microphone, ou l'icône "aA" dans la
-  barre d'adresse → Réglages du site.
+- **Le micro échoue avec "Permission dismissed" / "bloqué par le téléphone"** :
+  aucune popup d'autorisation n'a pu s'afficher — ce n'est pas un simple refus
+  dans la page, c'est bloqué au niveau du téléphone. Vérifier :
+  - **Android (Chrome)** : Réglages → Applications → Chrome → Autorisations
+    → Microphone → Autoriser. Puis, dans Chrome, taper l'icône 🔒/ⓘ à gauche
+    de l'adresse → Autorisations du site → Microphone → Autoriser, et recharger.
+  - **iPhone (Safari)** : Réglages → Safari → Microphone → régler sur
+    "Demander" (pas "Refuser"). Puis sur la page, taper l'icône "aA" dans la
+    barre d'adresse → Réglages du site web → Microphone → Autoriser, et
+    recharger. Si l'autorisation avait déjà été refusée une fois, Safari ne
+    redemande plus tant qu'elle n'est pas remise à "Demander" ici.
+  - Vérifier aussi qu'aucune autre appli n'utilise déjà le micro en tâche de
+    fond (coupe les appels/enregistreurs vocaux en cours).
 
 ## Limites connues
 
