@@ -57,6 +57,21 @@ npx local-web-server --https --http2.cert cert.pem --http2.key key.pem
 ou avec [mkcert](https://github.com/FiloSottile/mkcert) pour un certificat
 de confiance locale, puis n'importe quel serveur statique (`npx serve -S`).
 
+## Dépannage
+
+- **"Connexion…" reste bloqué côté parent, sans message d'erreur** : les deux
+  téléphones sont probablement sur des réseaux différents (un en 4G, l'autre
+  en Wi-Fi) et l'échange direct WebRTC échoue faute de serveur TURN adapté.
+  L'app inclut un TURN public gratuit de secours, mais pour un usage fiable
+  au quotidien il vaut mieux mettre les deux téléphones sur le même Wi-Fi ou
+  déployer son propre TURN.
+- **Le micro échoue sur iPhone mais pas sur Android** : le message affiché
+  précise maintenant la cause exacte (refus de permission, micro déjà utilisé,
+  etc.). Sur iOS, si l'autorisation a été refusée une première fois, Safari ne
+  redemande plus automatiquement : il faut l'autoriser manuellement via
+  Réglages → Safari → [nom du site] → Microphone, ou l'icône "aA" dans la
+  barre d'adresse → Réglages du site.
+
 ## Limites connues
 
 - **Fiabilité réseau** : la configuration utilise uniquement des serveurs

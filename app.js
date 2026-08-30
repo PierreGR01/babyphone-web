@@ -51,16 +51,71 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-// --- Config PeerJS (STUN publics ; ajoute un TURN pour les réseaux restrictifs) ---
-
+// --- Config PeerJS ---------------------------------------------------------
+// Le STUN seul suffit quand les deux téléphones sont sur le même réseau Wi-Fi.
+// Dès qu'ils sont sur des réseaux différents (l'un en 4G, ou NAT symétrique),
+// l'échange ICE échoue silencieusement sans TURN : la connexion reste bloquée
+// sur "Connexion…" sans erreur JS visible. Le TURN public ci-dessous (Open
+// Relay Project, gratuit, partagé) sert de secours pour les tests ; pour un
+// usage fiable au quotidien, remplacer par un TURN dédié (ex. coturn).
 const PEER_CONFIG = {
   config: {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:global.stun.twilio.com:3478" },
+      { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+      { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+      { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
     ],
   },
 };
+
+function watchIceState(peerConnection, onFailed, onRecovered) {
+  if (!peerConnection) return;
+  peerConnection.addEventListener("iceconnectionstatechange", () => {
+    const state = peerConnection.iceConnectionState;
+    console.log("ICE state:", state);
+    if (state === "failed") onFailed();
+    else if ((state === "connected" || state === "completed") && onRecovered) onRecovered();
+  });
+}
+
+function describeMediaError(err) {
+  const name = err && err.name;
+  if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+    return "Micro refusé — vérifiez l'autorisation dans les réglages du navigateur";
+  }
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return "Aucun micro détecté sur cet appareil";
+  }
+  if (name === "NotReadableError" || name === "TrackStartError") {
+    return "Micro déjà utilisé par une autre application";
+  }
+  if (name === "SecurityError") {
+    return "Accès micro bloqué (page non sécurisée)";
+  }
+  if (name === "OverconstrainedError") {
+    return "Réglages micro non supportés par cet appareil";
+  }
+  return "Erreur micro : " + (name || err);
+}
+
+async function getMicStream() {
+  const attempts = [
+    { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true, channelCount: 1 }, video: false },
+    { audio: true, video: false },
+  ];
+  let lastErr;
+  for (const constraints of attempts) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err) {
+      console.error("getUserMedia a échoué avec", constraints, err);
+      lastErr = err;
+    }
+  }
+  throw lastErr;
+}
 
 const PEER_ID_PREFIX = "babyphone-";
 
@@ -124,18 +179,15 @@ async function startMicRole() {
   micStopBtn.hidden = true;
   setMicStatus("Demande d'accès au micro…", "pending");
 
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setMicStatus("Micro non supporté par ce navigateur", "error");
+    return;
+  }
+
   try {
-    micState.stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: true,
-        channelCount: 1,
-      },
-      video: false,
-    });
+    micState.stream = await getMicStream();
   } catch (err) {
-    setMicStatus("Micro refusé ou indisponible", "error");
+    setMicStatus(describeMediaError(err), "error");
     return;
   }
 
@@ -170,6 +222,12 @@ function connectMicPeer(attempt = 0) {
       micStopBtn.hidden = true;
       setMicStatus("Parent déconnecté — en attente…", "pending");
     });
+
+    watchIceState(
+      call.peerConnection,
+      () => setMicStatus("Connexion réseau perdue avec le parent", "error"),
+      () => setMicStatus("Connecté", "connected")
+    );
 
     micPairingEl.hidden = true;
     micLiveEl.hidden = false;
@@ -269,7 +327,20 @@ function connectToMic(code) {
     const call = peer.call(PEER_ID_PREFIX + code, new MediaStream());
     parentState.call = call;
 
+    const connectTimeout = setTimeout(() => {
+      if (!parentState.active) {
+        setParentStatus("Ça prend du temps… vérifiez que les deux téléphones sont sur le même Wi-Fi", "pending");
+      }
+    }, 12000);
+
+    watchIceState(
+      call.peerConnection,
+      () => setParentStatus("Connexion réseau impossible entre ces deux téléphones", "error"),
+      () => { if (parentState.active) setParentStatus("Connecté", "connected"); }
+    );
+
     call.on("stream", (remoteStream) => {
+      clearTimeout(connectTimeout);
       remoteAudio.srcObject = remoteStream;
       remoteAudio.volume = Number(parentVolumeInput.value);
       const playPromise = remoteAudio.play();
@@ -289,14 +360,17 @@ function connectToMic(code) {
     });
 
     call.on("close", () => {
+      clearTimeout(connectTimeout);
       parentState.active = false;
       setParentStatus("Déconnecté", "error");
       parentLiveEl.hidden = true;
       parentConnectEl.hidden = false;
     });
 
-    call.on("error", () => {
-      setParentStatus("Erreur d'appel", "error");
+    call.on("error", (err) => {
+      clearTimeout(connectTimeout);
+      console.error("Erreur d'appel :", err);
+      setParentStatus("Erreur d'appel : " + (err.message || err.type || err), "error");
     });
   });
 
