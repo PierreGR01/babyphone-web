@@ -1,0 +1,187 @@
+:root {
+  --bg: #12141c;
+  --bg-elevated: #1c2030;
+  --text: #eef0f7;
+  --text-dim: #9aa0b4;
+  --accent: #7c9dff;
+  --accent-strong: #5b7cff;
+  --danger: #ff6b6b;
+  --ok: #4ade80;
+  --warn: #ffcf6b;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+#app {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px env(safe-area-inset-right) 24px env(safe-area-inset-left);
+}
+
+.view {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  position: relative;
+}
+
+.view[hidden] {
+  display: none;
+}
+
+h1 { font-size: 1.6rem; margin: 0; }
+h2 { font-size: 1.3rem; margin: 8px 0 0; }
+.subtitle { color: var(--text-dim); margin: 0 0 8px; }
+.hint { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
+.hint-small { color: var(--text-dim); font-size: 0.8rem; margin: 4px 0 0; }
+
+.back-btn {
+  position: absolute;
+  top: -8px;
+  left: 0;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.role-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.role-card {
+  background: var(--bg-elevated);
+  border: 1px solid #2a2f45;
+  border-radius: 18px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+}
+.role-card:active { transform: scale(0.98); border-color: var(--accent); }
+.role-icon { font-size: 2.2rem; }
+.role-title { font-size: 1.1rem; font-weight: 600; }
+.role-desc { color: var(--text-dim); font-size: 0.85rem; }
+
+.status-pill {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+}
+.status-pending { color: var(--warn); }
+.status-connected { color: var(--ok); }
+.status-error { color: var(--danger); }
+
+.pairing-code {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  padding-left: 0.35em;
+  color: var(--accent);
+}
+
+.qr-box { display: flex; justify-content: center; }
+.qr-box img, .qr-box canvas, .qr-box table {
+  background: white;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.code-input {
+  width: 100%;
+  font-size: 2.4rem;
+  text-align: center;
+  letter-spacing: 0.3em;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #2a2f45;
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+.code-input:focus { outline: 2px solid var(--accent); }
+
+.primary-btn, .danger-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+}
+.primary-btn { background: var(--accent-strong); color: white; }
+.primary-btn:active { background: var(--accent); }
+.danger-btn { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.danger-btn:active { background: rgba(255,107,107,0.1); }
+
+.live-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+}
+
+.live-panel[hidden] {
+  display: none;
+}
+
+.pulse-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(124,157,255,0.15), transparent 70%);
+}
+
+.pulse-dot {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  transition: box-shadow 0.08s ease-out, transform 0.08s ease-out;
+  box-shadow: 0 0 0 0 rgba(124,157,255,0.6);
+}
+
+.volume-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+.volume-row input[type="range"] { flex: 1; }

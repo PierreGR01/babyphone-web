@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12141c">
+<title>BabyPhone Web</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main id="app">
+
+  <!-- Écran d'accueil : choix du rôle -->
+  <section id="view-home" class="view">
+    <h1>👶 BabyPhone Web</h1>
+    <p class="subtitle">Transforme deux téléphones en interphone bébé, à sens unique.</p>
+    <div class="role-choice">
+      <button id="btn-role-mic" class="role-card">
+        <span class="role-icon">🎙️</span>
+        <span class="role-title">Chambre du bébé</span>
+        <span class="role-desc">Ce téléphone capte le son (micro)</span>
+      </button>
+      <button id="btn-role-parent" class="role-card">
+        <span class="role-icon">🔊</span>
+        <span class="role-title">Côté parent</span>
+        <span class="role-desc">Ce téléphone diffuse le son (écoute)</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Écran Micro (chambre bébé) -->
+  <section id="view-mic" class="view" hidden>
+    <button class="back-btn" data-back>←</button>
+    <h2>🎙️ Chambre du bébé</h2>
+
+    <div id="mic-status" class="status-pill status-pending">Préparation…</div>
+
+    <div id="mic-pairing" hidden>
+      <p class="hint">Sur le téléphone du parent, entrez ce code&nbsp;:</p>
+      <div id="mic-code" class="pairing-code">----</div>
+      <div id="mic-qr" class="qr-box"></div>
+      <p class="hint-small">ou scannez ce QR code avec l'appareil photo</p>
+    </div>
+
+    <div id="mic-live" class="live-panel" hidden>
+      <div class="pulse-ring"><div id="mic-level" class="pulse-dot">🎙️</div></div>
+      <p>En direct — le parent vous écoute</p>
+    </div>
+
+    <button id="mic-stop" class="danger-btn" hidden>Arrêter</button>
+  </section>
+
+  <!-- Écran Parent (écoute) -->
+  <section id="view-parent" class="view" hidden>
+    <button class="back-btn" data-back>←</button>
+    <h2>🔊 Côté parent</h2>
+
+    <div id="parent-connect">
+      <p class="hint">Entrez le code affiché sur le téléphone dans la chambre&nbsp;:</p>
+      <input id="parent-code-input" class="code-input" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+      <button id="parent-connect-btn" class="primary-btn">Se connecter</button>
+    </div>
+
+    <div id="parent-status" class="status-pill status-pending" hidden></div>
+
+    <div id="parent-live" class="live-panel" hidden>
+      <div class="pulse-ring"><div id="parent-level" class="pulse-dot">🔊</div></div>
+      <p>Écoute en cours…</p>
+
+      <label class="volume-row">
+        Volume
+        <input id="parent-volume" type="range" min="0" max="1" step="0.01" value="1">
+      </label>
+
+      <button id="parent-enable-audio" class="primary-btn" hidden>▶️ Activer le son</button>
+      <button id="parent-hangup" class="danger-btn">Se déconnecter</button>
+    </div>
+  </section>
+
+</main>
+
+<audio id="remote-audio" autoplay playsinline></audio>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
