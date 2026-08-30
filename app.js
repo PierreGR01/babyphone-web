@@ -231,42 +231,49 @@ async function connectMicPeer(attempt = 0) {
     setMicStatus("En attente du parent…", "pending");
   });
 
-  peer.on("call", (call) => {
-    call.answer(micState.stream);
-    micState.call = call;
-    micState.active = true;
+  // Le parent ouvre juste une connexion de signalisation légère pour se faire
+  // connaître ; c'est le micro qui rappelle avec son flux réel dès le départ.
+  // (Faire l'inverse — appeler avec un flux vide puis l'ajouter après coup
+  // côté micro — oblige à une renégociation SDP en cours d'appel que PeerJS
+  // ne relaie pas de façon fiable : un côté voit "connecté", l'autre jamais.)
+  peer.on("connection", (conn) => {
+    const startCall = () => {
+      const call = peer.call(conn.peer, micState.stream);
+      micState.call = call;
+      micState.active = true;
 
-    call.on("stream", () => {}); // sens unique : aucun flux entrant attendu
+      call.on("close", () => {
+        micState.active = false;
+        micPairingEl.hidden = false;
+        micLiveEl.hidden = true;
+        micStopBtn.hidden = true;
+        setMicStatus("Parent déconnecté — en attente…", "pending");
+      });
 
-    call.on("close", () => {
-      micState.active = false;
-      micPairingEl.hidden = false;
-      micLiveEl.hidden = true;
-      micStopBtn.hidden = true;
-      setMicStatus("Parent déconnecté — en attente…", "pending");
-    });
+      watchIceState(
+        call.peerConnection,
+        () => setMicStatus("Connexion réseau perdue avec le parent", "error"),
+        () => setMicStatus("Connecté", "connected")
+      );
 
-    watchIceState(
-      call.peerConnection,
-      () => setMicStatus("Connexion réseau perdue avec le parent", "error"),
-      () => setMicStatus("Connecté", "connected")
-    );
+      micPairingEl.hidden = true;
+      micLiveEl.hidden = false;
+      micStopBtn.hidden = false;
+      // "Connecté" n'est confirmé que par watchIceState ci-dessus.
+      setMicStatus("Connexion en cours…", "pending");
+      if (micState.stopMeter) micState.stopMeter();
+      micState.stopMeter = attachLevelMeter(micState.stream, micLevelEl);
 
-    micPairingEl.hidden = true;
-    micLiveEl.hidden = false;
-    micStopBtn.hidden = false;
-    // "Connecté" n'est confirmé que par watchIceState ci-dessus : recevoir
-    // l'appel ne veut pas dire que l'audio circule déjà (ICE peut échouer).
-    setMicStatus("Connexion en cours…", "pending");
-    if (micState.stopMeter) micState.stopMeter();
-    micState.stopMeter = attachLevelMeter(micState.stream, micLevelEl);
+      setTimeout(() => {
+        const state = call.peerConnection && call.peerConnection.iceConnectionState;
+        if (state !== "connected" && state !== "completed") {
+          setMicStatus("Ça prend du temps… vérifiez le réseau des deux téléphones", "pending");
+        }
+      }, 12000);
+    };
 
-    setTimeout(() => {
-      const state = call.peerConnection && call.peerConnection.iceConnectionState;
-      if (state !== "connected" && state !== "completed") {
-        setMicStatus("Ça prend du temps… vérifiez le réseau des deux téléphones", "pending");
-      }
-    }, 12000);
+    if (conn.open) startCall();
+    else conn.on("open", startCall);
   });
 
   peer.on("error", (err) => {
@@ -313,7 +320,7 @@ function renderQr(container, text) {
 
 // --- Rôle Parent (écoute) --------------------------------------------------
 
-const parentState = { peer: null, call: null, active: false, lastCode: null, stopMeter: null };
+const parentState = { peer: null, call: null, pairConn: null, active: false, lastCode: null, stopMeter: null };
 
 const parentConnectEl = document.getElementById("parent-connect");
 const parentCodeInput = document.getElementById("parent-code-input");
@@ -356,8 +363,13 @@ async function connectToMic(code) {
   parentState.peer = peer;
 
   peer.on("open", () => {
-    // Flux local vide : ce téléphone ne fait qu'écouter, il n'envoie aucun audio.
-    const call = peer.call(PEER_ID_PREFIX + code, new MediaStream());
+    // Signale juste notre présence au micro ; c'est lui qui nous rappellera
+    // avec son flux audio réel (voir le commentaire côté micro).
+    parentState.pairConn = peer.connect(PEER_ID_PREFIX + code, { reliable: true });
+  });
+
+  peer.on("call", (call) => {
+    call.answer(); // ce téléphone n'envoie aucun audio, il écoute seulement
     parentState.call = call;
 
     const connectTimeout = setTimeout(() => {
@@ -436,10 +448,12 @@ parentHangupBtn.addEventListener("click", () => {
 function teardownParent() {
   if (parentState.stopMeter) parentState.stopMeter();
   if (parentState.call) parentState.call.close();
+  if (parentState.pairConn) parentState.pairConn.close();
   if (parentState.peer) parentState.peer.destroy();
   remoteAudio.srcObject = null;
   parentState.peer = null;
   parentState.call = null;
+  parentState.pairConn = null;
   parentState.active = false;
   parentState.stopMeter = null;
   releaseWakeLock();
