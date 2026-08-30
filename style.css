@@ -47,6 +47,7 @@ html, body {
 h1 { font-size: 1.6rem; margin: 0; }
 h2 { font-size: 1.3rem; margin: 8px 0 0; }
 .subtitle { color: var(--text-dim); margin: 0 0 8px; }
+.build-tag { color: #4a4f66; font-size: 0.7rem; margin: -8px 0 0; }
 .hint { color: var(--text-dim); font-size: 0.95rem; margin: 0; }
 .hint-small { color: var(--text-dim); font-size: 0.8rem; margin: 4px 0 0; }
 

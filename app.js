@@ -1,5 +1,11 @@
 "use strict";
 
+// Sert à vérifier qu'un téléphone tourne bien la dernière version déployée
+// (utile pour exclure un cache navigateur obsolète en cas de bug).
+const BUILD_ID = "v6-call-direction-fix";
+const buildTagEl = document.getElementById("build-tag");
+if (buildTagEl) buildTagEl.textContent = "build " + BUILD_ID;
+
 // --- Navigation entre écrans ---------------------------------------------
 
 const views = {
