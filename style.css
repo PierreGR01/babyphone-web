@@ -8,6 +8,9 @@
   --danger: #ff6b6b;
   --ok: #4ade80;
   --warn: #ffcf6b;
+  --noise-hot: #ff8c3c;
+  /* Intensité (0 à 1) du halo plein écran quand un bruit est détecté. */
+  --noise: 0;
 }
 
 * { box-sizing: border-box; }
@@ -20,7 +23,35 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Halo orange plein écran quand ça bouge dans la chambre : visible même
+   du coin de l'œil, téléphone posé à distance. */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+body::before {
+  background: radial-gradient(circle at 50% 40%, rgba(255,140,60,0.8), rgba(255,90,40,0.35) 50%, rgba(255,90,40,0.12) 80%);
+  opacity: var(--noise);
+  transition: opacity 0.25s ease-out;
+}
+/* Cadre rouge clignotant quand le système semble en panne. */
+body::after {
+  box-shadow: inset 0 0 90px 24px rgba(255,107,107,0.85);
+  opacity: 0;
+}
+body.alarm::after { animation: alarm-pulse 1.2s ease-in-out infinite; }
+@keyframes alarm-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
 #app {
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -186,3 +217,99 @@ h2 { font-size: 1.3rem; margin: 8px 0 0; }
   font-size: 0.9rem;
 }
 .volume-row input[type="range"] { flex: 1; }
+
+.noise-label {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+body.noisy .noise-label { color: var(--noise-hot); font-size: 1.5rem; }
+body.noisy .pulse-dot { background: rgba(255,140,60,0.35); }
+
+.meter {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--bg-elevated);
+}
+.meter-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 7px;
+  background: var(--accent);
+  transition: width 0.08s linear;
+}
+body.noisy .meter-fill { background: var(--noise-hot); }
+.meter-threshold {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text);
+}
+
+.noise-history {
+  display: block;
+  width: 100%;
+  height: 60px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+}
+.history-caption { margin-top: -12px; }
+
+.health-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.health-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: var(--bg-elevated);
+  border: 1px solid #2a2f45;
+  color: var(--text-dim);
+}
+.health-chip[data-state="ok"] { color: var(--ok); border-color: rgba(74,222,128,0.4); }
+.health-chip[data-state="warn"] { color: var(--warn); border-color: rgba(255,207,107,0.5); }
+.health-chip[data-state="bad"] { color: var(--danger); border-color: var(--danger); background: rgba(255,107,107,0.12); }
+
+.alarm-banner {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255,107,107,0.18);
+  border: 1px solid var(--danger);
+  color: #ffd6d6;
+  font-weight: 600;
+}
+
+.secondary-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid #2a2f45;
+  cursor: pointer;
+}
+.secondary-btn:disabled { opacity: 0.6; }
+
+.test-result {
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  text-align: left;
+  background: var(--bg-elevated);
+}
+.test-result.ok { color: var(--ok); }
+.test-result.warn, .test-result.pending { color: var(--warn); }
+.test-result.error { color: var(--danger); }

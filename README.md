@@ -20,6 +20,24 @@ par ce service, uniquement les infos de connexion).
    bonne page).
 4. Le son se met à circuler automatiquement dès la connexion établie.
 
+## Côté parent : bruit et vérification du système
+
+- **Bruit détecté** : tout l'écran s'illumine en orange (intensité selon le
+  volume), le libellé passe en « 🔊 Bruit dans la chambre » et le téléphone
+  vibre (Android). L'heure du dernier bruit et un graphique des 5 dernières
+  minutes restent affichés. Le curseur **Sensibilité** règle le seuil
+  (trait blanc sur la jauge, pointillés sur le graphique).
+- **Santé en continu** (pastilles) : 🎙️ micro de la chambre actif, 📶 audio
+  bien reçu, 🔊 son audible ici, 🔋 batterie du téléphone de la chambre
+  (Android). En cas de problème (micro coupé par l'OS, son qui n'arrive plus,
+  silence numérique total, batterie < 10 %, liaison perdue) : cadre rouge
+  clignotant, message, vibration et bip, rappelés chaque minute.
+- **🧪 Tester discrètement** : la chambre injecte un bip directement dans le
+  flux envoyé — **rien n'est joué dans la chambre** — et le parent vérifie
+  qu'il le reçoit. Le parent entend le bip, ce qui valide aussi son volume.
+  Le résultat (horodaté) indique le délai et le bruit ambiant capté par le
+  micro.
+
 Les deux écrans empêchent la mise en veille de l'écran (Wake Lock) tant que
 la session est active.
 
