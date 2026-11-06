@@ -4,6 +4,8 @@ Interphone bébé à sens unique entre deux téléphones, dans le navigateur.
 Un téléphone sert de **micro** (posé dans la chambre), l'autre sert d'**enceinte**
 (côté parent). Aucun son n'est envoyé dans l'autre sens.
 
+👉 **Ouvrir l'app : https://pierregr01.github.io/babyphone-web/**
+
 Techniquement : une simple page web statique (HTML/CSS/JS), aucun serveur à
 coder. La connexion audio passe en direct entre les deux téléphones via
 **WebRTC**, la mise en relation ("qui appelle qui") passe par le service
